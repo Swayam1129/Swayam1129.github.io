@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Swayam Sagar — AI/ML Builder</title>
+  <style>
+    :root {
+      --bg:#dff7f1; --bg2:#ffffff; --bg3:#e8fdf8;
+      --teal:#007a6e; --teal2:#00695c; --teal3:#004d40;
+      --cream:#0d1a16; --muted:#4a7a6e; --border:rgba(0,120,110,0.18);
+      --card:rgba(255,255,255,0.92);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;scroll-padding-top:72px;}
+    /* Force cursor:none everywhere */
+    html, html *{cursor:none !important;}
+    /* Ensure all interactive elements are always clickable */
+    a, button, input, select, textarea, [href], [onclick], label{pointer-events:auto !important;}
+    @media(hover:none){html, html *{cursor:auto !important;}#chipmunk-wrap,#bg-chips{display:none;}}
+    body{background:var(--bg);color:var(--cream);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.65;overflow-x:hidden;}
+
+    /* ────── SCENIC BACKGROUND ────── */
+    #bg-scene{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+    #bg-scene *{pointer-events:none !important;}
+    #fireflies *{pointer-events:none !important;}
+
+    @keyframes river-shimmer{0%{stroke-dashoffset:0}100%{stroke-dashoffset:-800}}
+    @keyframes twinkle{0%,100%{opacity:.9}50%{opacity:.15}}
+    @keyframes mountain-mist{0%,100%{opacity:.08}50%{opacity:.18}}
+
+    /* ────── BACKGROUND CHIPMUNKS (bg-scene layer, semi-transparent) ────── */
+    #bg-chips{position:fixed;bottom:128px;left:0;right:0;height:160px;z-index:1;pointer-events:none;}
+    .bchip{position:absolute;bottom:30px;opacity:.28;pointer-events:none;}
+    #bg-chips *{pointer-events:none !important;}
+
+    /* Runner 1 — crosses slowly left to right */
+    @keyframes run-lr{
+      0%  {left:-6vw;transform:scaleX(1);}
+      48% {left:42vw;transform:scaleX(1);}
+      50% {left:42vw;transform:scaleX(-1);}
+      98% {left:-6vw;transform:scaleX(-1);}
+      100%{left:-6vw;transform:scaleX(1);}
+    }
+    /* Runner 2 — quicker, different lane */
+    @keyframes run-rl{
+      0%  {left:110vw;transform:scaleX(-1);}
+      48% {left:65vw;transform:scaleX(-1);}
+      50% {left:65vw;transform:scaleX(1);}
+      98% {left:110vw;transform:scaleX(1);}
+      100%{left:110vw;transform:scaleX(-1);}
+    }
+    /* Jumper */
+    @keyframes jump{
+      0%,100%{bottom:105px;transform:scaleX(1);}
+      15%    {bottom:105px;transform:scaleX(1);}
+      25%    {bottom:138px;transform:scaleX(1);}
+      35%    {bottom:105px;transform:scaleX(1);}
+      50%    {bottom:105px;transform:scaleX(1);}
+      65%    {bottom:138px;transform:scaleX(1);}
+      75%    {bottom:105px;transform:scaleX(1);}
+    }
+    /* Digger — bobs up and down in place */
+    @keyframes dig{
+      0%,100%{bottom:105px;}
+      30%    {bottom:98px;}
+      60%    {bottom:105px;}
+      80%    {bottom:101px;}
+    }
+
+    #bchip1{animation:run-lr 18s linear infinite;}
+    #bchip2{animation:run-rl 12s 3s linear infinite;}
+    #bchip3{left:72vw;animation:jump 5s 1s ease-in-out infinite;}
+    #bchip4{left:18vw;animation:dig 3s .5s ease-in-out infinite;}
+
+    /* ────── FIREFLIES ────── */
+    #fireflies{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden;}
+    .firefly{position:absolute;border-radius:50%;background:#00897b;opacity:0;animation:fly linear infinite;}
+    @keyframes fly{
+      0%{opacity:0;transform:translate(0,0) scale(1);}
+      20%{opacity:.55;}80%{opacity:.3;}
+      100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3);}
+    }
+
+    /* ────── NAV ────── */
+    nav{position:fixed;top:0;left:0;right:0;z-index:9998;display:flex;align-items:center;justify-content:space-between;padding:.75rem 2.5rem;background:rgba(232,253,248,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);pointer-events:auto;}
+    nav *, nav a, nav button{pointer-events:auto !important;}
+    .nav-logo{font-weight:900;font-size:1.05rem;letter-spacing:-.5px;color:var(--teal);font-style:italic;}
+    .nav-links{display:flex;gap:.5rem;list-style:none;}
+    /* Bigger padding = bigger click target — easier to hit even with Chip's lag */
+    .nav-links a{color:#2a5248;text-decoration:none;font-size:.9rem;font-weight:600;transition:color .2s,background .2s;position:relative;padding:.6rem 1.1rem;border-radius:8px;}
+    .nav-links a::after{content:'';position:absolute;bottom:6px;left:1.1rem;right:1.1rem;height:2px;background:var(--teal);transform:scaleX(0);transition:transform .2s;transform-origin:left;}
+    .nav-links a:hover{color:var(--teal);background:rgba(0,120,110,.07);}
+    .nav-links a:hover::after{transform:scaleX(1);}
+    .nav-cta{padding:.55rem 1.4rem;border-radius:8px;border:1.5px solid var(--teal);color:var(--teal);font-size:.88rem;text-decoration:none;font-weight:700;transition:background .2s,color .2s;}
+    .nav-cta:hover{background:var(--teal);color:white;}
+
+    /* ────── HERO ────── */
+    #hero{min-height:100vh;position:relative;display:flex;align-items:center;justify-content:center;padding:6rem 2rem 2rem;text-align:center;}
+    .hero-glow{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(0,137,123,.08) 0%,transparent 70%);pointer-events:none;}
+    .hero-trees{position:absolute;bottom:0;left:0;right:0;height:180px;pointer-events:none;z-index:1;}
+    .hero-inner{position:relative;z-index:2;}
+    .hero-tag{display:inline-flex;align-items:center;gap:.5rem;padding:.35rem 1rem;border-radius:999px;margin-bottom:1.5rem;background:rgba(0,212,170,.08);border:1px solid var(--border);font-size:.78rem;color:var(--teal);}
+    .dot-pulse{width:7px;height:7px;border-radius:50%;background:var(--teal);animation:dp 2s infinite;}
+    @keyframes dp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+    h1{font-size:clamp(3rem,8vw,6rem);font-weight:900;letter-spacing:-3px;line-height:1;margin-bottom:1rem;color:#0a1714;text-shadow:0 2px 20px rgba(255,255,255,.8);}
+    h1 span{color:var(--teal);}
+    .hero-sub{font-size:clamp(1rem,2.5vw,1.25rem);color:#1a4d42;margin-bottom:.5rem;font-weight:600;text-shadow:0 1px 8px rgba(255,255,255,.7);}
+    .typed-wrap{min-height:2rem;margin-bottom:2.5rem;}
+    #typed{color:var(--teal);font-weight:700;}
+    #cur{color:var(--teal);animation:cb .9s infinite;}
+    @keyframes cb{0%,100%{opacity:1}50%{opacity:0}}
+    .hero-actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;}
+    .btn-p{padding:.8rem 2rem;border-radius:8px;background:var(--teal);color:white;font-weight:700;text-decoration:none;font-size:.95rem;transition:transform .2s,box-shadow .2s;box-shadow:0 4px 18px rgba(0,137,123,.35);}
+    .btn-p:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(0,137,123,.5);}
+    .btn-s{padding:.8rem 2rem;border-radius:8px;border:1.5px solid var(--teal);color:var(--teal);font-weight:700;text-decoration:none;font-size:.95rem;transition:border-color .2s,background .2s,color .2s;}
+    .btn-s:hover{background:var(--teal);color:white;}
+
+    /* ────── PAGE WRAPPER ────── */
+    #page-content{
+      /* No z-index/position here — avoids creating stacking context that eats nav clicks */
+      max-width:1100px;
+      margin:0 auto;
+      padding:0 1.5rem 10rem; /* bottom clears fixed river */
+    }
+
+    /* ────── SECTIONS ────── */
+    section{
+      padding:4.5rem 3rem;
+      background:rgba(255,255,255,0.54);
+      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border-radius:22px;
+      margin-bottom:2rem;
+      border:1px solid rgba(255,255,255,0.72);
+      box-shadow:0 4px 28px rgba(0,100,90,.09);
+      /* No position:relative/z-index — keeps nav always clickable */
+    }
+    /* Hero is full-width, no card style */
+    #hero{
+      max-width:none;
+      margin-left:-1.5rem;margin-right:-1.5rem;
+      padding:6rem 2rem 10rem;
+      background:none;box-shadow:none;
+      backdrop-filter:none;-webkit-backdrop-filter:none;
+      border:none;border-radius:0;
+    }
+    .stag{display:inline-block;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:3px;color:var(--teal);margin-bottom:.6rem;}
+    h2{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:900;letter-spacing:-1.5px;margin-bottom:.4rem;color:#0a1714;}
+    .sdesc{color:#4a7a6e;max-width:520px;margin-bottom:2.5rem;font-size:.95rem;}
+
+    /* ────── ABOUT ────── */
+    .about-wrap{display:grid;grid-template-columns:1.1fr 1fr;gap:3.5rem;align-items:start;}
+    @media(max-width:700px){.about-wrap{grid-template-columns:1fr;}}
+    .about-p{color:#2a5248;margin-bottom:1rem;font-size:.97rem;line-height:1.7;}
+    .about-p strong{color:#0a1714;font-weight:800;} .about-p em{color:#007a6e;font-style:normal;font-weight:700;}
+    .fact-card{background:rgba(255,255,255,0.78);backdrop-filter:blur(10px);border:1.5px solid rgba(255,255,255,0.8);border-radius:12px;padding:1.1rem 1.25rem;margin-bottom:.85rem;display:flex;gap:.9rem;align-items:flex-start;transition:border-color .2s,box-shadow .2s;box-shadow:0 2px 10px rgba(0,100,90,.07);}
+    .fact-card:hover{border-color:var(--teal);box-shadow:0 4px 18px rgba(0,120,110,.13);}
+    .fact-icon{font-size:1.3rem;flex-shrink:0;margin-top:.1rem;}
+    .fact-title{font-size:.88rem;font-weight:800;margin-bottom:.15rem;color:#0a1714;}
+    .fact-sub{font-size:.78rem;color:#4a7a6e;}
+
+    /* ────── PROJECTS ────── */
+    .proj-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:1.5rem;}
+    @media(max-width:500px){.proj-grid{grid-template-columns:1fr;}}
+    .proj-card{background:rgba(255,255,255,0.75);backdrop-filter:blur(14px);border:1.5px solid rgba(255,255,255,0.8);border-radius:14px;padding:1.75rem;transition:border-color .25s,transform .25s,box-shadow .25s;position:relative;overflow:hidden;box-shadow:0 2px 14px rgba(0,100,90,.07);}
+    .proj-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--teal),transparent);transform:scaleX(0);transform-origin:left;transition:transform .3s;}
+    .proj-card:hover::before{transform:scaleX(1);}
+    .proj-card:hover{border-color:var(--teal);transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,100,90,.14);}
+    .proj-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.75rem;}
+    .proj-title{font-size:1rem;font-weight:800;color:#0a1714;}
+    .proj-gh{font-size:.75rem;color:var(--teal);text-decoration:none;padding:.2rem .65rem;border-radius:4px;border:1.5px solid var(--border);transition:color .2s,border-color .2s,background .2s;white-space:nowrap;font-weight:600;}
+    .proj-gh:hover{color:white;border-color:var(--teal);background:var(--teal);}
+    .proj-desc{color:#3d6b5e;font-size:.875rem;margin-bottom:1rem;line-height:1.6;}
+    .proj-stat{display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;font-weight:700;color:#005f56;background:rgba(0,120,110,.1);border:1.5px solid rgba(0,120,110,.25);padding:.22rem .65rem;border-radius:4px;margin-bottom:1rem;}
+    .tags{display:flex;flex-wrap:wrap;gap:.4rem;}
+    .tag{font-size:.7rem;padding:.22rem .65rem;border-radius:5px;background:rgba(0,120,110,.08);color:#005f56;border:1px solid rgba(0,120,110,.2);font-weight:600;}
+
+    /* ────── SKILLS ────── */
+    .skills-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1.25rem;}
+    .sg{background:rgba(255,255,255,0.72);backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,0.8);border-radius:12px;padding:1.3rem;transition:border-color .2s,box-shadow .2s;box-shadow:0 2px 10px rgba(0,100,90,.06);}
+    .sg:hover{border-color:var(--teal);box-shadow:0 4px 18px rgba(0,120,110,.12);}
+    .sg-title{font-size:.7rem;font-weight:900;text-transform:uppercase;letter-spacing:2.5px;color:var(--teal);margin-bottom:.85rem;}
+    .pills{display:flex;flex-wrap:wrap;gap:.4rem;}
+    .pill{font-size:.75rem;padding:.25rem .7rem;border-radius:6px;background:#f0fdf9;border:1px solid rgba(0,120,110,.18);color:#1a4d42;font-weight:500;transition:all .15s;}
+    .pill:hover{background:var(--teal);color:white;border-color:var(--teal);}
+
+    /* ────── CONTACT ────── */
+    .contact-wrap{display:grid;grid-template-columns:1fr 1fr;gap:3rem;}
+    @media(max-width:650px){.contact-wrap{grid-template-columns:1fr;}}
+    .clink{display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;border-radius:12px;background:#fff;border:1.5px solid var(--border);text-decoration:none;color:#0a1714;margin-bottom:.75rem;transition:border-color .2s,transform .2s,box-shadow .2s;box-shadow:0 2px 8px rgba(0,100,90,.06);}
+    .clink:hover{border-color:var(--teal);transform:translateX(5px);box-shadow:0 4px 16px rgba(0,120,110,.12);}
+    .clink-icon{font-size:1.3rem;} .clink-lbl{font-size:.72rem;color:#4a7a6e;font-weight:600;letter-spacing:.5px;text-transform:uppercase;} .clink-val{font-size:.95rem;font-weight:800;color:#0a1714;}
+    .status-card{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:1.75rem;box-shadow:0 2px 14px rgba(0,100,90,.07);}
+    .status-row{margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid rgba(0,120,110,.08);} .status-row:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none;}
+    .status-lbl{font-size:.72rem;color:#4a7a6e;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:.3rem;}
+    .status-val{font-weight:800;font-size:1.05rem;color:#0a1714;} .status-val.avail{color:#007a6e;}
+
+    footer{text-align:center;padding:2.5rem 2rem 4rem;border-top:1px solid rgba(0,120,110,.15);font-size:.85rem;color:#2a5248;font-weight:500;position:relative;z-index:2;background:rgba(255,255,255,.55);backdrop-filter:blur(16px);border-radius:0 0 16px 16px;margin-bottom:0;}
+
+    /* ────── FIXED RIVER STRIP ────── */
+    #river-strip{
+      position:fixed;bottom:0;left:0;right:0;height:128px;
+      z-index:50;pointer-events:none;overflow:hidden;
+    }
+    #river-strip *{pointer-events:none !important;}
+    .rc{pointer-events:none !important;}
+    @keyframes rflow{0%{stroke-dashoffset:0}100%{stroke-dashoffset:-600}}
+    @keyframes rflow2{0%{stroke-dashoffset:0}100%{stroke-dashoffset:600}}
+    /* river chipmunks */
+    .rc{position:absolute;bottom:42px;}
+    @keyframes rc-lr{
+      0%  {left:-8vw;transform:scaleX(1);}
+      46% {left:48vw;transform:scaleX(1);}
+      50% {left:48vw;transform:scaleX(-1);}
+      96% {left:-8vw;transform:scaleX(-1);}
+      100%{left:-8vw;transform:scaleX(1);}
+    }
+    @keyframes rc-rl{
+      0%  {left:108vw;transform:scaleX(-1);}
+      46% {left:58vw;transform:scaleX(-1);}
+      50% {left:58vw;transform:scaleX(1);}
+      96% {left:108vw;transform:scaleX(1);}
+      100%{left:108vw;transform:scaleX(-1);}
+    }
+    @keyframes rc-hop{
+      0%,100%{bottom:42px;}
+      20%    {bottom:68px;}
+      40%    {bottom:42px;}
+      60%    {bottom:60px;}
+      80%    {bottom:42px;}
+    }
+    @keyframes rc-hop2{
+      0%,100%{bottom:44px;}
+      30%    {bottom:72px;}
+      60%    {bottom:44px;}
+    }
+    #rc1{animation:rc-lr 22s linear infinite;}
+    #rc2{animation:rc-rl 15s 2s linear infinite;}
+    #rc3{right:22vw;animation:rc-hop 3.2s 0.5s ease-in-out infinite;}
+    #rc4{left:70vw;animation:rc-hop2 4s 1.8s ease-in-out infinite;}
+
+    /* ────── MAIN CHIPMUNK ────── */
+    #chipmunk-wrap{position:fixed;z-index:9999;pointer-events:none;will-change:left,top;}
+
+    /* Speech bubble — HORIZONTAL, beside chipmunk */
+    #chip-bubble{
+      position:absolute;
+      /* sits to the right by default */
+      left:calc(100% + 12px);
+      top:50%;
+      transform:translateY(-50%);
+      background:white;
+      border:1.5px solid var(--teal);
+      border-radius:12px;
+      padding:.55rem 1rem;
+      font-size:.78rem;
+      color:#0a2620;
+      line-height:1.45;
+      white-space:nowrap;        /* keep it on ONE horizontal line */
+      max-width:280px;
+      white-space:normal;        /* allow wrap only if truly needed */
+      width:max-content;
+      max-width:260px;
+      opacity:0;
+      transition:opacity .3s;
+      box-shadow:0 4px 20px rgba(0,137,123,.18);
+      pointer-events:none;
+    }
+    /* Left-pointing tail */
+    #chip-bubble::before{
+      content:'';position:absolute;
+      right:100%;top:50%;transform:translateY(-50%);
+      border:7px solid transparent;
+      border-right-color:var(--teal);
+    }
+    /* Flipped version: bubble on left side */
+    #chip-bubble.flip-left{
+      left:auto;
+      right:calc(100% + 12px);
+    }
+    #chip-bubble.flip-left::before{
+      right:auto;left:100%;
+      border-right-color:transparent;
+      border-left-color:var(--teal);
+    }
+    #chip-bubble.show{opacity:1;}
+
+    /* Eye blink */
+    @keyframes eyeblink{0%,90%,100%{transform:scaleY(1)}95%{transform:scaleY(.05)}}
+    .chip-eye{transform-origin:center;animation:eyeblink var(--bd,3.8s) var(--bdelay,0s) infinite;}
+
+    #chip-svg{display:block;width:50px;height:62px;}
+
+    /* ────── SCROLL REVEAL ────── */
+    .reveal{opacity:0;transform:translateY(24px);transition:opacity .6s,transform .6s;}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+  </style>
+</head>
+<body>
+
+<!-- ══════ SCENIC BACKGROUND ══════ -->
+<svg id="bg-scene" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#b2f0e8"/>
+      <stop offset="50%" stop-color="#d0f7f0"/>
+      <stop offset="100%" stop-color="#e8fdf8"/>
+    </linearGradient>
+    <linearGradient id="riverG" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="rgba(0,150,130,0)"/>
+      <stop offset="25%" stop-color="rgba(0,188,166,.55)"/>
+      <stop offset="55%" stop-color="rgba(0,210,180,.6)"/>
+      <stop offset="80%" stop-color="rgba(0,188,166,.45)"/>
+      <stop offset="100%" stop-color="rgba(0,150,130,0)"/>
+    </linearGradient>
+    <linearGradient id="riverG2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(0,200,175,.45)"/>
+      <stop offset="100%" stop-color="rgba(0,137,123,.2)"/>
+    </linearGradient>
+    <filter id="bglow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="2"/></filter>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1440" height="900" fill="url(#sky)"/>
+
+  <!-- Sun -->
+  <circle cx="1100" cy="95" r="52" fill="#ffe066" opacity=".85" filter="url(#bglow)"/>
+  <circle cx="1100" cy="95" r="40" fill="#ffec99" opacity=".9"/>
+
+  <!-- Clouds -->
+  <g opacity=".82">
+    <ellipse cx="200" cy="80" rx="70" ry="28" fill="white"/>
+    <ellipse cx="160" cy="88" rx="50" ry="22" fill="white"/>
+    <ellipse cx="240" cy="88" rx="55" ry="22" fill="white"/>
+    <ellipse cx="580" cy="60" rx="90" ry="30" fill="white"/>
+    <ellipse cx="530" cy="70" rx="60" ry="24" fill="white"/>
+    <ellipse cx="640" cy="70" rx="65" ry="24" fill="white"/>
+    <ellipse cx="950" cy="100" rx="75" ry="26" fill="white" opacity=".7"/>
+    <ellipse cx="910" cy="108" rx="52" ry="20" fill="white" opacity=".7"/>
+    <ellipse cx="1005" cy="108" rx="58" ry="20" fill="white" opacity=".7"/>
+  </g>
+
+  <!-- Mountain range — far back -->
+  <path d="M0,600 L140,340 L300,560 L440,280 L600,500 L740,220 L900,480 L1060,310 L1220,520 L1360,350 L1440,440 L1440,700 L0,700Z"
+        fill="#6dbfa8" opacity=".55"/>
+
+  <!-- Mountain range — mid -->
+  <path d="M0,680 L100,480 L240,620 L380,440 L530,610 L680,390 L830,580 L980,430 L1130,600 L1280,450 L1440,550 L1440,760 L0,760Z"
+        fill="#4aab92" opacity=".65"/>
+
+  <!-- Snow caps — far peaks -->
+  <g fill="rgba(255,255,255,.75)">
+    <polygon points="440,280 420,340 460,340"/>
+    <polygon points="740,220 718,290 762,290"/>
+    <polygon points="1060,310 1038,375 1082,375"/>
+  </g>
+
+  <!-- Valley / ground -->
+  <path d="M0,760 Q360,720 720,745 Q1080,770 1440,750 L1440,900 L0,900Z"
+        fill="#a8e6d8"/>
+
+  <!-- RIVER — wide glowing body -->
+  <path d="M-80,820 C150,790 280,810 420,800 C560,790 620,815 760,808 C900,800 1000,820 1140,812 C1280,804 1380,818 1520,810"
+        fill="none" stroke="url(#riverG)" stroke-width="42" stroke-linecap="round"/>
+  <!-- River fill -->
+  <path d="M-80,810 C150,780 280,800 420,790 C560,780 620,805 760,798 C900,790 1000,810 1140,802 C1280,794 1380,808 1520,800 L1520,835 C1380,843 1280,829 1140,837 C1000,845 900,825 760,833 C620,841 560,816 420,825 C280,835 150,815 -80,845Z"
+        fill="url(#riverG2)"/>
+  <!-- River shimmer lines -->
+  <path d="M50,812 C200,802 340,814 480,806 C620,798 740,812 900,806 C1060,800 1200,812 1380,808"
+        fill="none" stroke="rgba(255,255,255,.6)" stroke-width="4" stroke-linecap="round"
+        stroke-dasharray="55,35" style="animation:river-shimmer 4s linear infinite"/>
+  <path d="M20,820 C180,812 320,822 460,816 C600,810 720,822 880,817 C1040,812 1180,822 1400,818"
+        fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2.5" stroke-linecap="round"
+        stroke-dasharray="30,55" style="animation:river-shimmer 7s 1.5s linear infinite reverse"/>
+  <!-- River reflection glow -->
+  <ellipse cx="720" cy="815" rx="320" ry="12" fill="rgba(255,255,255,.2)" filter="url(#soft)"/>
+
+  <!-- Ground grass line -->
+  <path d="M0,762 Q180,752 360,758 Q540,764 720,756 Q900,748 1080,755 Q1260,762 1440,756"
+        fill="none" stroke="rgba(0,137,100,.4)" stroke-width="3"/>
+
+  <!-- Pine trees — background, bright green -->
+  <g fill="#2e8b57" opacity=".75">
+    <g transform="translate(60,700) scale(.6)"><polygon points="0,-80 -28,0 28,0"/><polygon points="0,-60 -22,14 22,14" transform="translate(0,18)"/><polygon points="0,-44 -18,20 18,20" transform="translate(0,34)"/><rect x="-5" y="70" width="10" height="20"/></g>
+    <g transform="translate(130,705) scale(.5)"><polygon points="0,-70 -24,0 24,0"/><polygon points="0,-52 -19,14 19,14" transform="translate(0,16)"/><rect x="-4" y="56" width="8" height="16"/></g>
+    <g transform="translate(200,698) scale(.65)"><polygon points="0,-85 -30,0 30,0"/><polygon points="0,-64 -24,15 24,15" transform="translate(0,19)"/><polygon points="0,-46 -19,20 19,20" transform="translate(0,37)"/><rect x="-5" y="75" width="10" height="20"/></g>
+    <g transform="translate(550,702) scale(.55)"><polygon points="0,-75 -26,0 26,0"/><polygon points="0,-55 -20,15 20,15" transform="translate(0,17)"/><rect x="-4" y="60" width="9" height="18"/></g>
+    <g transform="translate(640,697) scale(.7)"><polygon points="0,-90 -32,0 32,0"/><polygon points="0,-68 -25,16 25,16" transform="translate(0,20)"/><polygon points="0,-50 -20,22 20,22" transform="translate(0,38)"/><rect x="-5" y="78" width="10" height="22"/></g>
+    <g transform="translate(900,700) scale(.6)"><polygon points="0,-80 -28,0 28,0"/><polygon points="0,-60 -22,14 22,14" transform="translate(0,18)"/><rect x="-5" y="68" width="10" height="18"/></g>
+    <g transform="translate(980,695) scale(.72)"><polygon points="0,-92 -33,0 33,0"/><polygon points="0,-70 -26,16 26,16" transform="translate(0,20)"/><polygon points="0,-52 -21,22 21,22" transform="translate(0,38)"/><rect x="-5" y="80" width="10" height="22"/></g>
+    <g transform="translate(1200,701) scale(.58)"><polygon points="0,-78 -27,0 27,0"/><polygon points="0,-58 -21,14 21,14" transform="translate(0,17)"/><rect x="-4" y="65" width="9" height="18"/></g>
+    <g transform="translate(1310,698) scale(.66)"><polygon points="0,-86 -30,0 30,0"/><polygon points="0,-65 -24,15 24,15" transform="translate(0,19)"/><polygon points="0,-48 -19,21 19,21" transform="translate(0,36)"/><rect x="-5" y="74" width="10" height="20"/></g>
+  </g>
+</svg>
+
+<!-- ══════ BACKGROUND CHIPMUNKS ══════ -->
+<div id="bg-chips">
+  <!-- Small chipmunk SVG reused for background critters -->
+  <!-- bchip1: slow runner, left-to-right -->
+  <svg id="bchip1" class="bchip" width="36" height="44" viewBox="0 0 80 100" opacity=".45">
+    <path d="M52 72 Q78 58 72 82 Q66 96 48 86" fill="#8B5E3C"/>
+    <ellipse cx="36" cy="72" rx="20" ry="21" fill="#7a5230"/>
+    <ellipse cx="36" cy="36" rx="22" ry="21" fill="#9a6b48"/>
+    <ellipse cx="18" cy="18" rx="9" ry="12" fill="#7a5230"/>
+    <ellipse cx="54" cy="18" rx="9" ry="12" fill="#7a5230"/>
+    <circle cx="28" cy="32" r="4" fill="#1a0800"/>
+    <circle cx="44" cy="32" r="4" fill="#1a0800"/>
+    <circle cx="30" cy="30" r="1.5" fill="white"/>
+    <circle cx="46" cy="30" r="1.5" fill="white"/>
+    <!-- tiny acorn in paws -->
+    <ellipse cx="20" cy="68" rx="6" ry="4" fill="#7a5230"/>
+    <ellipse cx="36" cy="85" rx="7" ry="4" fill="#5c3d1e"/>
+    <ellipse cx="48" cy="85" rx="7" ry="4" fill="#5c3d1e"/>
+  </svg>
+
+  <!-- bchip2: faster runner, right-to-left side of screen -->
+  <svg id="bchip2" class="bchip" width="30" height="36" viewBox="0 0 80 100" opacity=".38">
+    <path d="M52 72 Q78 58 72 82 Q66 96 48 86" fill="#7a5230"/>
+    <ellipse cx="36" cy="72" rx="20" ry="21" fill="#6b4226"/>
+    <ellipse cx="36" cy="36" rx="22" ry="21" fill="#8b5e3c"/>
+    <ellipse cx="18" cy="18" rx="9" ry="12" fill="#6b4226"/>
+    <ellipse cx="54" cy="18" rx="9" ry="12" fill="#6b4226"/>
+    <circle cx="28" cy="32" r="4" fill="#1a0800"/>
+    <circle cx="44" cy="32" r="4" fill="#1a0800"/>
+    <circle cx="30" cy="30" r="1.5" fill="white"/>
+    <circle cx="46" cy="30" r="1.5" fill="white"/>
+    <ellipse cx="26" cy="91" rx="9" ry="4" fill="#5c3d1e"/>
+    <ellipse cx="46" cy="91" rx="9" ry="4" fill="#5c3d1e"/>
+  </svg>
+
+  <!-- bchip3: jumper near river -->
+  <svg id="bchip3" class="bchip" width="32" height="40" viewBox="0 0 80 100" opacity=".42">
+    <path d="M52 72 Q75 55 70 78 Q64 92 48 84" fill="#A0714F"/>
+    <ellipse cx="36" cy="72" rx="20" ry="21" fill="#8B5E3C"/>
+    <ellipse cx="36" cy="36" rx="22" ry="21" fill="#A0714F"/>
+    <ellipse cx="18" cy="18" rx="9" ry="12" fill="#8B5E3C"/>
+    <ellipse cx="54" cy="18" rx="9" ry="12" fill="#8B5E3C"/>
+    <!-- bigger eyes, mid-jump excited -->
+    <circle cx="28" cy="30" r="5" fill="#1a0800"/>
+    <circle cx="44" cy="30" r="5" fill="#1a0800"/>
+    <circle cx="30" cy="28" r="2" fill="white"/>
+    <circle cx="46" cy="28" r="2" fill="white"/>
+    <!-- legs spread in jump -->
+    <ellipse cx="18" cy="82" rx="9" ry="4" fill="#6B4226" transform="rotate(-30 18 82)"/>
+    <ellipse cx="54" cy="82" rx="9" ry="4" fill="#6B4226" transform="rotate(30 54 82)"/>
+  </svg>
+
+  <!-- bchip4: digger / stationary bob -->
+  <svg id="bchip4" class="bchip" width="28" height="34" viewBox="0 0 80 100" opacity=".35">
+    <ellipse cx="36" cy="72" rx="20" ry="21" fill="#7a5230"/>
+    <ellipse cx="36" cy="36" rx="22" ry="21" fill="#9a6b48"/>
+    <ellipse cx="18" cy="18" rx="9" ry="12" fill="#7a5230"/>
+    <ellipse cx="54" cy="18" rx="9" ry="12" fill="#7a5230"/>
+    <circle cx="28" cy="34" r="4" fill="#1a0800"/>
+    <circle cx="44" cy="34" r="4" fill="#1a0800"/>
+    <!-- looking down, paws digging -->
+    <ellipse cx="16" cy="72" rx="8" ry="5" fill="#7a5230" transform="rotate(30 16 72)"/>
+    <ellipse cx="56" cy="72" rx="8" ry="5" fill="#7a5230" transform="rotate(-30 56 72)"/>
+    <ellipse cx="36" cy="93" rx="12" ry="5" fill="#5c3d1e"/>
+  </svg>
+</div>
+
+<!-- Fireflies -->
+<div id="fireflies"></div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">swayam.dev 🌿</div>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <a href="mailto:swayam2@ualberta.ca" class="nav-cta">Hire Me</a>
+</nav>
+
+<div id="page-content">
+<!-- Hero -->
+<section id="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-inner">
+    <div class="hero-tag"><div class="dot-pulse"></div> Open to internships · Summer &amp; Fall 2026</div>
+    <h1>Swayam<br/><span>Sagar.</span></h1>
+    <p class="hero-sub">CS @ UAlberta · LLM researcher at heart, builder by habit.</p>
+    <div class="typed-wrap"><span id="typed"></span><span id="cur">|</span></div>
+    <div class="hero-actions">
+      <a href="#projects" class="btn-p">See my work</a>
+      <a href="https://github.com/Swayam1129" target="_blank" class="btn-s">GitHub →</a>
+    </div>
+  </div>
+  <svg class="hero-trees" viewBox="0 0 1440 180" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0,180 L0,120 L30,80 L60,120 L90,50 L120,100 L160,30 L200,90 L230,70 L260,110 L300,40 L340,100 L370,90 L400,120 L440,80 L480,130 L520,60 L560,110 L600,45 L640,100 L680,75 L720,115 L760,50 L800,100 L840,80 L880,120 L920,55 L960,105 L1000,70 L1040,110 L1090,35 L1140,95 L1180,65 L1220,105 L1260,75 L1300,115 L1340,85 L1380,120 L1440,120 L1440,180Z" fill="#3aaa7a" opacity=".6"/>
+    <path d="M0,180 L0,148 L60,122 L120,148 L200,130 L280,148 L360,135 L440,148 L520,126 L600,148 L680,132 L760,148 L840,128 L920,148 L1000,134 L1080,148 L1160,130 L1240,148 L1320,136 L1440,148 L1440,180Z" fill="#52c491" opacity=".5"/>
+  </svg>
+</section>
+
+<!-- About -->
+<section id="about">
+  <span class="stag">About me</span>
+  <h2>Not your average<br/>CS student.</h2>
+  <div class="about-wrap" style="margin-top:2.5rem;">
+    <div>
+      <p class="about-p">Hey, I'm Swayam. CS student at the <strong>University of Alberta</strong>, deeply interested in <em>large language models</em>, retrieval-augmented generation, and how AI reasoning actually works — not just how to call an API.</p>
+      <p class="about-p">I've built an <em>LLM pipeline that cuts hallucinations by 40%</em>, a <em>real-time EEG-based migraine detector</em>, and a <em>voice-first navigation app for blind users</em> — all while tutoring 7 CS courses on the side.</p>
+      <p class="about-p">My interest is in the research side: why models fail, how to ground them in real data, and what it takes to make them reliable outside of benchmarks.</p>
+      <div style="display:flex;gap:.75rem;margin-top:1.5rem;flex-wrap:wrap;">
+        <a href="https://www.linkedin.com/in/swayam-sagar-948323256/" target="_blank" class="btn-s" style="font-size:.82rem;padding:.5rem 1.1rem;" data-chip="linkedin">LinkedIn</a>
+        <a href="https://github.com/Swayam1129" target="_blank" class="btn-s" style="font-size:.82rem;padding:.5rem 1.1rem;" data-chip="github">GitHub</a>
+        <a href="mailto:swayam2@ualberta.ca" class="btn-s" style="font-size:.82rem;padding:.5rem 1.1rem;" data-chip="email">Email me</a>
+      </div>
+    </div>
+    <div>
+      <div class="fact-card" data-chip="education">
+        <span class="fact-icon">🎓</span>
+        <div>
+          <div class="fact-title">University of Alberta</div>
+          <div class="fact-sub">BSc Computing Science · Sep 2023 – Apr 2027<br/>International Admission Scholarship · Regional Excellence Scholarship</div>
+        </div>
+      </div>
+      <div class="fact-card" data-chip="courses">
+        <span class="fact-icon">📖</span>
+        <div>
+          <div class="fact-title">Courses I've taken (and teach)</div>
+          <div class="fact-sub">Machine Learning · Reinforcement Learning · Search &amp; Planning in AI · Algorithms · Databases · Software Engineering</div>
+        </div>
+      </div>
+      <div class="fact-card" data-chip="tutor">
+        <span class="fact-icon">🧑‍🏫</span>
+        <div>
+          <div class="fact-title">CS Tutor · UAlberta (2024–present)</div>
+          <div class="fact-sub">Tutoring students across 7 CMPUT courses. Turns out explaining things is the best way to understand them.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Projects -->
+<section id="projects">
+  <span class="stag">Projects</span>
+  <h2>Stuff I actually built.</h2>
+  <p class="sdesc">Real projects, real data, real results. Not homework.</p>
+  <div class="proj-grid">
+    <div class="proj-card" data-chip="rag">
+      <div class="proj-top"><div class="proj-title">🧠 LLM-Powered RAG Pipeline</div><a class="proj-gh" href="https://github.com/Swayam1129/rag-pipeline" target="_blank">↗ GitHub</a></div>
+      <p class="proj-desc">End-to-end ETL pipeline using LangChain + FAISS vector indexing to ground LLM answers in real domain data. Benchmarked BERT vs GPT variants for latency/quality trade-offs.</p>
+      <div class="proj-stat">↓ 40% hallucination rate over baseline</div>
+      <div class="tags"><span class="tag">Python</span><span class="tag">LangChain</span><span class="tag">FAISS</span><span class="tag">Hugging Face</span><span class="tag">OpenAI API</span><span class="tag">RAG</span></div>
+    </div>
+    <div class="proj-card" data-chip="migraine">
+      <div class="proj-top"><div class="proj-title">⚡ MigraineMinder — EEG ML Detector</div><a class="proj-gh" href="https://github.com/Swayam1129/migraineminder" target="_blank">↗ GitHub</a></div>
+      <p class="proj-desc">Real-time pipeline ingesting 256Hz EEG data from IoT hardware. Trained classifiers with live inference monitoring. 100+ events visualized in real time. Actual sensors, not simulated.</p>
+      <div class="proj-stat">✓ 85% accuracy · 30% false-positive reduction</div>
+      <div class="tags"><span class="tag">Python</span><span class="tag">scikit-learn</span><span class="tag">Flask</span><span class="tag">IoT</span><span class="tag">Arduino</span><span class="tag">Real-time ML</span></div>
+    </div>
+    <div class="proj-card" data-chip="accessu">
+      <div class="proj-top"><div class="proj-title">👁️ AccessU — AI Campus Navigation</div><a class="proj-gh" href="https://github.com/Swayam1129/routecause_AccessU" target="_blank">↗ GitHub</a></div>
+      <p class="proj-desc">On-device CV models for real-time scene recognition on mobile — no cloud needed. Built for blind and low-vision users with voice-first UX. BFS-based indoor pathfinding.</p>
+      <div class="proj-stat">↑ 50% rerouting efficiency</div>
+      <div class="tags"><span class="tag">Kotlin</span><span class="tag">ML Kit</span><span class="tag">CameraX</span><span class="tag">Google Maps SDK</span><span class="tag">Computer Vision</span></div>
+    </div>
+    <div class="proj-card" data-chip="social">
+      <div class="proj-top"><div class="proj-title">🌐 SocialDistribution — Federated Network</div><a class="proj-gh" href="https://github.com/Swayam1129/w26-socialdistribution-turquoise" target="_blank">↗ GitHub</a></div>
+      <p class="proj-desc">Federated multi-node social network with normalized Postgres schemas and 15+ REST endpoints. Cross-node data validation and SQL-optimized queries across distributed nodes.</p>
+      <div class="proj-stat">↓ 35% API response time</div>
+      <div class="tags"><span class="tag">Python</span><span class="tag">Django</span><span class="tag">PostgreSQL</span><span class="tag">REST APIs</span><span class="tag">Distributed Systems</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Skills -->
+<section id="skills">
+  <span class="stag">Skills</span>
+  <h2>What I reach for.</h2>
+  <p class="sdesc">The stack I'm actually comfortable with — not just things I once googled.</p>
+  <div class="skills-grid">
+    <div class="sg" data-chip="skills-ai"><div class="sg-title">AI / ML</div><div class="pills"><span class="pill">PyTorch</span><span class="pill">TensorFlow</span><span class="pill">LangChain</span><span class="pill">Hugging Face</span><span class="pill">scikit-learn</span><span class="pill">FAISS</span><span class="pill">RAG</span><span class="pill">Reinforcement Learning</span><span class="pill">Computer Vision</span></div></div>
+    <div class="sg" data-chip="skills-lang"><div class="sg-title">Languages</div><div class="pills"><span class="pill">Python</span><span class="pill">C</span><span class="pill">C++</span><span class="pill">Java</span><span class="pill">JavaScript</span><span class="pill">TypeScript</span><span class="pill">SQL</span><span class="pill">Bash</span></div></div>
+    <div class="sg" data-chip="skills-backend"><div class="sg-title">Backend &amp; Data</div><div class="pills"><span class="pill">FastAPI</span><span class="pill">Node.js</span><span class="pill">PostgreSQL</span><span class="pill">MongoDB</span><span class="pill">Redis</span><span class="pill">ETL Pipelines</span><span class="pill">REST APIs</span></div></div>
+    <div class="sg" data-chip="skills-cloud"><div class="sg-title">Cloud &amp; DevOps</div><div class="pills"><span class="pill">AWS</span><span class="pill">Azure</span><span class="pill">Docker</span><span class="pill">GitHub Actions</span><span class="pill">CI/CD</span><span class="pill">Firebase</span></div></div>
+  </div>
+</section>
+
+<!-- Contact -->
+<section id="contact">
+  <span class="stag">Contact</span>
+  <h2>Let's actually talk.</h2>
+  <p class="sdesc">Looking for Summer / Fall 2026 internships. I reply fast, unlike some people.</p>
+  <div class="contact-wrap">
+    <div>
+      <a href="mailto:swayam2@ualberta.ca" class="clink" data-chip="email"><span class="clink-icon">✉️</span><div><div class="clink-lbl">Email (fastest)</div><div class="clink-val">swayam2@ualberta.ca</div></div></a>
+      <a href="https://www.linkedin.com/in/swayam-sagar-948323256/" target="_blank" class="clink" data-chip="linkedin"><span class="clink-icon">💼</span><div><div class="clink-lbl">LinkedIn</div><div class="clink-val">linkedin.com/in/swayam-sagar-948323256</div></div></a>
+      <a href="https://github.com/Swayam1129" target="_blank" class="clink" data-chip="github"><span class="clink-icon">🐙</span><div><div class="clink-lbl">GitHub</div><div class="clink-val">github.com/Swayam1129</div></div></a>
+    </div>
+    <div class="status-card">
+      <div class="status-row"><div class="status-lbl">Currently</div><div class="status-val">4th Year CS @ UAlberta 🍂</div></div>
+      <div class="status-row"><div class="status-lbl">Based in</div><div class="status-val">Edmonton, AB, Canada 🌲</div></div>
+      <div class="status-row"><div class="status-lbl">Looking for</div><div class="status-val">AI/ML · SWE Internships</div></div>
+      <div class="status-row"><div class="status-lbl">Available</div><div class="status-val avail">Summer &amp; Fall 2026 ✓</div></div>
+    </div>
+  </div>
+</section>
+
+<footer><p>Made by Swayam Sagar, somewhere in Edmonton 🌲 · <a href="https://github.com/Swayam1129" target="_blank" style="color:var(--teal);text-decoration:none;">GitHub</a></p></footer>
+</div><!-- end #page-content -->
+
+<!-- ══════ FIXED RIVER STRIP ══════ -->
+<div id="river-strip">
+  <svg width="100%" height="128" viewBox="0 0 1440 128" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="bank" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#52c491" stop-opacity=".95"/>
+        <stop offset="100%" stop-color="#3aaa7a"/>
+      </linearGradient>
+      <linearGradient id="riv" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3dd6c0"/>
+        <stop offset="100%" stop-color="#1ab8a6"/>
+      </linearGradient>
+      <filter id="rs"><feGaussianBlur stdDeviation="1.5"/></filter>
+    </defs>
+
+    <!-- Grassy bank top edge -->
+    <path d="M0,0 Q180,18 360,8 Q540,-2 720,12 Q900,26 1080,10 Q1260,-4 1440,8 L1440,55 L0,55Z" fill="url(#bank)"/>
+
+    <!-- Grass bumps / tufts -->
+    <g fill="#3aaa7a" opacity=".7">
+      <ellipse cx="80"  cy="50" rx="18" ry="7"/>
+      <ellipse cx="210" cy="46" rx="14" ry="6"/>
+      <ellipse cx="400" cy="52" rx="20" ry="7"/>
+      <ellipse cx="600" cy="48" rx="16" ry="6"/>
+      <ellipse cx="790" cy="53" rx="19" ry="7"/>
+      <ellipse cx="1010" cy="47" rx="15" ry="6"/>
+      <ellipse cx="1200" cy="51" rx="18" ry="7"/>
+      <ellipse cx="1380" cy="49" rx="14" ry="6"/>
+    </g>
+
+    <!-- Flowers on grass -->
+    <g font-size="11" text-anchor="middle">
+      <text x="140" y="52">🌼</text>
+      <text x="480" y="50">🌸</text>
+      <text x="870" y="52">🌼</text>
+      <text x="1260" y="50">🌸</text>
+    </g>
+
+    <!-- River body -->
+    <rect x="0" y="55" width="1440" height="50" fill="url(#riv)"/>
+
+    <!-- River shimmer — main flow -->
+    <path d="M-60,68 C120,62 300,72 480,66 C660,60 840,72 1020,66 C1200,60 1380,70 1520,65"
+          fill="none" stroke="rgba(255,255,255,.55)" stroke-width="5" stroke-linecap="round"
+          stroke-dasharray="70,40" style="animation:rflow 3.5s linear infinite"/>
+    <!-- River shimmer — secondary -->
+    <path d="M-60,80 C140,75 320,83 500,78 C680,73 860,82 1040,77 C1220,72 1380,80 1520,76"
+          fill="none" stroke="rgba(255,255,255,.35)" stroke-width="3" stroke-linecap="round"
+          stroke-dasharray="45,60" style="animation:rflow2 5s .8s linear infinite"/>
+    <!-- River shimmer — ripples -->
+    <path d="M100,90 Q200,86 300,90" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-dasharray="12,20" style="animation:rflow 2s linear infinite"/>
+    <path d="M500,88 Q620,84 740,88" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-dasharray="12,20" style="animation:rflow 2.5s .5s linear infinite"/>
+    <path d="M900,91 Q1020,87 1140,91" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-dasharray="12,20" style="animation:rflow 3s 1s linear infinite"/>
+
+    <!-- Lily pads -->
+    <g opacity=".85">
+      <ellipse cx="250" cy="78" rx="14" ry="8" fill="#2d9e6e" transform="rotate(-10 250 78)"/>
+      <ellipse cx="700" cy="82" rx="12" ry="7" fill="#2d9e6e" transform="rotate(8 700 82)"/>
+      <ellipse cx="1100" cy="76" rx="13" ry="7.5" fill="#2d9e6e" transform="rotate(-5 1100 76)"/>
+      <circle cx="250" cy="76" r="3.5" fill="#ff6b8a" opacity=".9"/>
+      <circle cx="700" cy="80" r="3" fill="#ff8c42" opacity=".9"/>
+      <circle cx="1100" cy="74" r="3.5" fill="#ff6b8a" opacity=".9"/>
+    </g>
+
+    <!-- Rocks in river -->
+    <g fill="#5a9e8a" opacity=".6">
+      <ellipse cx="450" cy="90" rx="9" ry="5"/>
+      <ellipse cx="950" cy="85" rx="7" ry="4"/>
+      <ellipse cx="1300" cy="92" rx="8" ry="4.5"/>
+    </g>
+
+    <!-- Bottom bank -->
+    <rect x="0" y="105" width="1440" height="23" fill="#3aaa7a"/>
+    <path d="M0,105 Q360,100 720,105 Q1080,110 1440,105" fill="#52c491" opacity=".6"/>
+
+    <!-- Tiny pebbles at bottom edge -->
+    <g fill="#2d9e6e" opacity=".5">
+      <circle cx="200" cy="115" r="3"/><circle cx="450" cy="118" r="2.5"/><circle cx="680" cy="114" r="3.5"/>
+      <circle cx="900" cy="117" r="2.5"/><circle cx="1150" cy="115" r="3"/><circle cx="1380" cy="116" r="2.5"/>
+    </g>
+  </svg>
+
+  <!-- Chipmunks hopping along the riverbank -->
+  <!-- Slow runner left→right -->
+  <svg id="rc1" class="rc" width="38" height="46" viewBox="0 0 80 100" opacity=".9">
+    <path d="M52 72 Q78 58 72 82 Q66 96 48 86" fill="#A0714F"/>
+    <ellipse cx="36" cy="72" rx="20" ry="21" fill="#8B5E3C"/>
+    <ellipse cx="36" cy="36" rx="22" ry="21" fill="#A0714F"/>
+    <ellipse cx="18" cy="18" rx="9" ry="12" fill="#8B5E3C"/>
+    <ellipse cx="54" cy="18" rx="9" ry="12" fill="#8B5E3C"/>
+    <circle cx="28" cy="32" r="4.5" fill="#1a0800"/>
+    <circle cx="44" cy="32" r="4.5" fill="#1a0800"/>
+    <circle cx="30" cy="30" r="1.8" fill="white"/>
+    <circle cx="46" cy="30" r="1.8" fill="white"/>
+    <path d="M16 56 Q36 49 56 56 L53 64 Q36 58 19 64Z" fill="#00897b"/>
+    <ellipse cx="26" cy="91" rx="9" ry="4" fill="#6B4226"/>
+    <ellipse cx="46" cy="91" rx="9" ry="4" fill="#6B4226"/>
+  </svg>
+
+  <!-- Faster runner right→left -->
+  <svg id="rc2" class="rc" width="32" height="38" viewBox="0 0 80 100" opacity=".85">
+    <path d="M28 72 Q2 58 8 82 Q14 96 32 86" fill="#7a5230"/>
+    <ellipse cx="44" cy="72" rx="20" ry="21" fill="#8B5E3C"/>
+    <ellipse cx="44" cy="36" rx="22" ry="21" fill="#9a6b48"/>
+    <ellipse cx="26" cy="18" rx="9" ry="12" fill="#7a5230"/>
+    <ellipse cx="62" cy="18" rx="9" ry="12" fill="#7a5230"/>
+    <circle cx="36" cy="32" r="4.5" fill="#1a0800"/>
+    <circle cx="52" cy="32" r="4.5" fill="#1a0800"/>
+    <circle cx="38" cy="30" r="1.8" fill="white"/>
+    <circle cx="54" cy="30" r="1.8" fill="white"/>
+    <path d="M24 56 Q44 49 64 56 L61 64 Q44 58 27 64Z" fill="#00897b"/>
+    <ellipse cx="34" cy="91" rx="9" ry="4" fill="#6B4226"/>
+    <ellipse cx="54" cy="91" rx="9" ry="4" fill="#6B4226"/>
+  </svg>
+
+  <!-- Stationary hopper 1 -->
+  <svg id="rc3" class="rc" width="36" height="44" viewBox="0 0 80 100" opacity=".88">
+    <path d="M52 72 Q78 58 72 82 Q66 96 48 86" fill="#A0714F"/>
+    <ellipse cx="36" cy="72" rx="20" ry="21" fill="#8B5E3C"/>
+    <ellipse cx="36" cy="36" rx="22" ry="21" fill="#A0714F"/>
+    <ellipse cx="18" cy="18" rx="9" ry="12" fill="#8B5E3C"/>
+    <ellipse cx="54" cy="18" rx="9" ry="12" fill="#8B5E3C"/>
+    <circle cx="28" cy="29" r="5.5" fill="#1a0800"/>
+    <circle cx="44" cy="29" r="5.5" fill="#1a0800"/>
+    <circle cx="30" cy="27" r="2" fill="white"/>
+    <circle cx="46" cy="27" r="2" fill="white"/>
+    <!-- holding something (acorn) -->
+    <ellipse cx="14" cy="60" rx="7" ry="5" fill="#8B5E3C" transform="rotate(30 14 60)"/>
+    <ellipse cx="14" cy="57" rx="5" ry="3" fill="#5c3d1e" transform="rotate(30 14 60)"/>
+    <ellipse cx="26" cy="91" rx="9" ry="4" fill="#6B4226" transform="rotate(-20 26 91)"/>
+    <ellipse cx="46" cy="91" rx="9" ry="4" fill="#6B4226" transform="rotate(20 46 91)"/>
+  </svg>
+
+  <!-- Stationary hopper 2 -->
+  <svg id="rc4" class="rc" width="30" height="36" viewBox="0 0 80 100" opacity=".8">
+    <path d="M52 72 Q75 60 70 80 Q64 94 48 84" fill="#9a6b48"/>
+    <ellipse cx="36" cy="72" rx="20" ry="21" fill="#7a5230"/>
+    <ellipse cx="36" cy="36" rx="22" ry="21" fill="#9a6b48"/>
+    <ellipse cx="18" cy="18" rx="9" ry="12" fill="#7a5230"/>
+    <ellipse cx="54" cy="18" rx="9" ry="12" fill="#7a5230"/>
+    <circle cx="28" cy="32" r="4.5" fill="#1a0800"/>
+    <circle cx="44" cy="32" r="4.5" fill="#1a0800"/>
+    <circle cx="30" cy="30" r="1.8" fill="white"/>
+    <circle cx="46" cy="30" r="1.8" fill="white"/>
+    <ellipse cx="26" cy="91" rx="9" ry="4" fill="#5c3d1e" transform="rotate(-25 26 91)"/>
+    <ellipse cx="46" cy="91" rx="9" ry="4" fill="#5c3d1e" transform="rotate(25 46 91)"/>
+  </svg>
+</div>
+
+<!-- ══════ MAIN CHIPMUNK ══════ -->
+<div id="chipmunk-wrap">
+  <div id="chip-bubble"></div>
+  <svg id="chip-svg" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M52 72 Q78 58 72 82 Q66 96 48 86" fill="#A0714F"/>
+    <path d="M52 72 Q74 60 70 80 Q64 92 50 84" fill="#C4956A" opacity=".6"/>
+    <ellipse cx="36" cy="72" rx="20" ry="21" fill="#8B5E3C"/>
+    <path d="M26 54 Q36 49 46 54 L46 88 Q36 93 26 88Z" fill="#6B4226" opacity=".2"/>
+    <line x1="36" y1="52" x2="36" y2="91" stroke="#6B4226" stroke-width="2" opacity=".25"/>
+    <ellipse cx="36" cy="36" rx="22" ry="21" fill="#A0714F"/>
+    <ellipse cx="18" cy="18" rx="9" ry="12" fill="#8B5E3C"/>
+    <ellipse cx="54" cy="18" rx="9" ry="12" fill="#8B5E3C"/>
+    <ellipse cx="18" cy="18" rx="5.5" ry="8" fill="#D4956A"/>
+    <ellipse cx="54" cy="18" rx="5.5" ry="8" fill="#D4956A"/>
+    <ellipse cx="14" cy="41" rx="11" ry="8" fill="#C4845A" opacity=".5"/>
+    <ellipse cx="58" cy="41" rx="11" ry="8" fill="#C4845A" opacity=".5"/>
+    <g id="chip-eyes">
+      <g class="chip-eye" style="--bd:3.8s;--bdelay:0.1s">
+        <circle cx="28" cy="32" r="5.5" fill="#1a0800"/>
+        <circle cx="30" cy="30" r="2" fill="white"/>
+        <circle cx="30.8" cy="30.2" r="1" fill="white" opacity=".5"/>
+      </g>
+      <g class="chip-eye" style="--bd:3.8s;--bdelay:0.18s">
+        <circle cx="44" cy="32" r="5.5" fill="#1a0800"/>
+        <circle cx="46" cy="30" r="2" fill="white"/>
+        <circle cx="46.8" cy="30.2" r="1" fill="white" opacity=".5"/>
+      </g>
+    </g>
+    <ellipse cx="36" cy="42" rx="4" ry="3" fill="#8B4513"/>
+    <path id="chip-mouth" d="M31 46 Q36 50 41 46" stroke="#6B3410" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M16 56 Q36 49 56 56 L53 64 Q36 58 19 64Z" fill="#00d4aa" opacity=".92"/>
+    <path d="M36 64 L40 74 L32 74Z" fill="#00b896" opacity=".85"/>
+    <ellipse cx="14" cy="67" rx="8" ry="5" fill="#8B5E3C" transform="rotate(-20 14 67)"/>
+    <ellipse cx="58" cy="67" rx="8" ry="5" fill="#8B5E3C" transform="rotate(20 58 67)"/>
+    <ellipse cx="26" cy="91" rx="9" ry="4" fill="#6B4226"/>
+    <ellipse cx="46" cy="91" rx="9" ry="4" fill="#6B4226"/>
+  </svg>
+</div>
+
+<script>
+// ── Fireflies ──
+const ffEl=document.getElementById('fireflies');
+for(let i=0;i<26;i++){const f=document.createElement('div');f.className='firefly';const s=2+Math.random()*3;f.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}vw;top:${Math.random()*100}vh;--dx:${(Math.random()-.5)*200}px;--dy:${(Math.random()-.5)*200}px;animation-duration:${5+Math.random()*12}s;animation-delay:${Math.random()*8}s;filter:blur(${Math.random()*1.5}px);`;ffEl.appendChild(f);}
+
+// ── Typed text ──
+const phrases=['things that actually work in prod.','LLM pipelines that don\'t hallucinate.','real-time ML on real hardware.','AI that helps real people.','cool stuff. come look. 🌿'];
+let pi=0,ci=0,del=false;
+function type(){const el=document.getElementById('typed'),p=phrases[pi];if(!del){el.textContent=p.slice(0,++ci);if(ci===p.length){del=true;setTimeout(type,1800);return;}}else{el.textContent=p.slice(0,--ci);if(ci===0){del=false;pi=(pi+1)%phrases.length;}}setTimeout(type,del?38:72);}
+type();
+
+// ── Chipmunk ──
+const wrap=document.getElementById('chipmunk-wrap');
+const bubble=document.getElementById('chip-bubble');
+const chipSvg=document.getElementById('chip-svg');
+const mouth=document.getElementById('chip-mouth');
+
+let cx=-200,cy=-200,tx=-200,ty=-200,flipped=false,bubbleTimeout,lastZone='',lastEl=null;
+
+// SPECIFIC comments — only shown when hovering a tagged element
+const specificMsgs={
+  linkedin:[
+    'His LinkedIn is shinier than his room. Allegedly. 💼',
+    '500+ connections. I have 0. We\'re very different.',
+    'He said his LinkedIn is "optimized." I proofread it. It\'s fine.',
+    'Recruiters love this guy. Chip approves. Nobody asked Chip.'
+  ],
+  github:[
+    'His commit messages actually make sense. Suspicious. 🐙',
+    'Clean repos. Unlike my burrow. Which is a DISASTER.',
+    'Green squares everywhere. He doesn\'t touch grass much. 🌱',
+    'Open source! Sharing is caring! I don\'t share my acorns tho.'
+  ],
+  email:[
+    'He WILL reply. I\'ve seen his inbox. It\'s intense. ✉️',
+    'Fastest response ever. Faster than I find acorns. (low bar)',
+    'Go ahead. Email him. He\'s probably already awake.'
+  ],
+  education:[
+    'UAlberta! Great school. Very cold city. He stays inside coding. 🎓',
+    'BSc CS. Four years. Many algorithms. One chipmunk guide.',
+    'Two scholarships. He didn\'t pay ME in scholarships. Just acorns. 😐',
+    'International student who outperforms locals. Don\'t tell them.'
+  ],
+  courses:[
+    'Machine Learning AND Reinforcement Learning?? Pick a struggle. 📚',
+    'Search & Planning in AI. I just search for food. Simpler life.',
+    'He took Databases so you don\'t have to. You\'re welcome.',
+    'Software Engineering: "how to not break everything." He passed.'
+  ],
+  tutor:[
+    'He teaches this stuff too. Nauseating work ethic. 🏫',
+    'Explains algorithms to students. Explains life to me. Same energy.',
+    '7 courses. S-E-V-E-N. I count on one paw. That\'s a lot, man.'
+  ],
+  rag:[
+    '40% less hallucination! That\'s NUTS. (pun intended) 🥜',
+    'LangChain + FAISS + actual brain cells. Three things I lack.',
+    'He reduced AI hallucinations. I hallucinate acorns daily. Different paths.',
+    'ETL pipeline. I don\'t know what that means but it sounds productive.'
+  ],
+  migraine:[
+    'Real EEG sensors! Real humans! Real science! I\'m real too! ...sort of. 🧠',
+    '85% accuracy on BRAIN DATA. My acorn-location accuracy: 30%.',
+    'He wired brains to computers. Completely normal Tuesday.',
+    'IoT + ML + Arduino. The holy trinity. Plus a chipmunk. Quadrinity.'
+  ],
+  accessu:[
+    'Helps blind users navigate campus. My heart: melted. 🍂',
+    'On-device CV. No cloud. Just phone + camera + big brain. ✨',
+    '50% better rerouting. He optimized the algorithm. I optimize my floof.',
+    'Voice-first for accessibility. Most thoughtful project. Not crying. You\'re crying.'
+  ],
+  social:[
+    '35% faster APIs. I timed it with my tail. Very scientific. ⚡',
+    'Federated network! 15+ endpoints! I have one job: explain stuff. 🌐',
+    'PostgreSQL schemas. Data validation. Cross-node consistency. Gesundheit.',
+    'Distributed systems. Many nodes. Much data. Very wow. So backend.'
+  ],
+  'skills-ai':[
+    'PyTorch, TensorFlow, LangChain... my paws hurt just reading that. 🤖',
+    'He built a RAG pipeline. I built a nest. Totally comparable skills.',
+    'Reinforcement Learning — he trains agents. I AM an agent. Hiring me was wise.',
+    'Computer Vision! He sees everything now. That\'s why he\'s so judgy.'
+  ],
+  'skills-lang':[
+    'C AND C++?? He likes suffering. I respect it greatly. 🐍',
+    'Python is why I have a job. Thanks, snake language. No hard feelings.',
+    '8 languages. I speak one: chipmunk. We all have our gifts.',
+    'TypeScript. He believes in types. I believe in acorns. Valid.'
+  ],
+  'skills-backend':[
+    'FastAPI! PostgreSQL! Redis! He doesn\'t sleep. I sleep constantly. 😤',
+    'ETL pipelines. Data flows. So much data. Someone help him.',
+    'MongoDB AND PostgreSQL?? Pick a database and commit, dude.',
+    'Node.js in the backend. Very RESTful. Ha. Get it. REST. Ha.'
+  ],
+  'skills-cloud':[
+    'AWS AND Azure?? Hedging cloud bets. Smart. Very acorn of him. ☁️',
+    'Docker. GitHub Actions. CI/CD. He automates everything. Even me?? 👀',
+    'Lives in the cloud. I live in a tree. We\'re basically the same.',
+    'Firebase. The other other cloud. He knows them all. Overachiever.'
+  ]
+};
+
+// IDLE jokes — shown ONLY when hovering empty/untagged space
+const idleJokes=[
+  '...just watching. No reason. Totally normal behavior. 👀',
+  'I\'ve been here for hours. Send snacks. Preferably acorns.',
+  'Fun fact: I know all his passwords. Just kidding. Maybe. 🌰',
+  'Do you see me? Blink twice if you see me.',
+  'He paid me to be charming. The bar was low but here we are.',
+  'I\'m an SVG having an existential crisis. You\'re welcome.',
+  'Genuine question: what IS an acorn? A nut? A seed? A mystery.',
+  '...is someone reading this? Hello?? 🌿',
+  'My other chipmunk friends are in the background doing nothing. I do ALL the work.',
+  'Those background chipmunks? Freeloaders. Not naming names. (it\'s bchip2)',
+  'They just run around looking cute. I have to explain RAG pipelines. Not fair.',
+  'Sometimes I wonder what it\'s like to just jump around and eat acorns. Sigh.',
+  'He\'s paying me overtime to be here. I haven\'t been paid yet. 🌰',
+  'The river looks nice from here. I should take a day off.',
+  'If you hire him, I come with the deal. Non-negotiable. 🐿️',
+  'Bored? Me too. Look at my friends in the background tho. Living their best life.'
+];
+
+let idleIdx=0;
+const msgIdx2={};
+function getSpecific(zone){const list=specificMsgs[zone];if(!list)return null;msgIdx2[zone]=((msgIdx2[zone]||0)+1)%list.length;return list[msgIdx2[zone]];}
+function getIdle(){const msg=idleJokes[idleIdx];idleIdx=(idleIdx+1)%idleJokes.length;return msg;}
+
+function showBubble(text,flip){
+  bubble.textContent=text;
+  // Position bubble on right or left based on cursor position
+  const isRight=cx>window.innerWidth*.65;
+  if(isRight){bubble.classList.add('flip-left');}
+  else{bubble.classList.remove('flip-left');}
+  bubble.classList.add('show');
+  clearTimeout(bubbleTimeout);
+  bubbleTimeout=setTimeout(()=>bubble.classList.remove('show'),3800);
+}
+
+function setMouth(happy){mouth.setAttribute('d',happy?'M31 46 Q36 51 41 46':'M31 48 Q36 45 41 48');}
+
+let idleTimer;
+function resetIdleTimer(){
+  clearTimeout(idleTimer);
+  idleTimer=setTimeout(()=>{showBubble(getIdle());setMouth(false);},6000);
+}
+
+document.addEventListener('mousemove',e=>{
+  tx=e.clientX;ty=e.clientY;
+
+  // Flip direction
+  if(tx>cx+4&&flipped){chipSvg.style.transform='scaleX(1)';flipped=false;}
+  if(tx<cx-4&&!flipped){chipSvg.style.transform='scaleX(-1)';flipped=true;}
+
+  // Zone detection at raw cursor — what you're actually pointing at
+  const el=document.elementFromPoint(tx,ty);
+  if(el&&el!==lastEl){
+    lastEl=el;
+    const zone=el.closest('[data-chip]')?.dataset?.chip||'';
+    if(zone!==lastZone){
+      lastZone=zone;
+      if(zone){
+        const msg=getSpecific(zone);
+        if(msg){showBubble(msg);setMouth(true);clearTimeout(idleTimer);resetIdleTimer();}
+      } else {
+        resetIdleTimer();
+      }
+    }
+  }
+});
+
+// Lerp follow — no clamping, nav z-index is above Chip so links stay readable/clickable
+function lerp(a,b,t){return a+(b-a)*t;}
+(function animate(){
+  cx=lerp(cx,tx,0.09);cy=lerp(cy,ty,0.09);
+  wrap.style.left=(cx-26)+'px';
+  wrap.style.top=(cy-72)+'px';
+  requestAnimationFrame(animate);
+})();
+
+// Random extra blinks
+setInterval(()=>{
+  document.querySelectorAll('.chip-eye').forEach(e=>{e.style.transform='scaleY(0.05)';setTimeout(()=>e.style.transform='',80);});
+},Math.random()*4000+2000);
+
+// Greeting on load
+setTimeout(()=>{showBubble('Hi! I\'m Chip. He paid me in acorns. 🌰');setMouth(true);},1400);
+// Start idle cycle
+setTimeout(resetIdleTimer,8000);
+
+// ── Scroll reveal ──
+document.querySelectorAll('section,.proj-card,.fact-card,.sg').forEach(el=>{
+  el.classList.add('reveal');
+  new IntersectionObserver(([e])=>{if(e.isIntersecting)e.target.classList.add('visible');},{threshold:.1}).observe(el);
+});
+</script>
+</body>
+</html>
